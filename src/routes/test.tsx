@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { ModuleProgress } from "@/components/quiz/ModuleProgress";
 import { QuestionCard } from "@/components/quiz/QuestionCard";
+import { SkillsMatrix } from "@/components/quiz/SkillsMatrix";
 import { modules, screens } from "@/data/questions";
 import type { AnswerValue } from "@/data/types";
 import { isAnswered } from "@/lib/scoring";
@@ -14,16 +15,16 @@ export const Route = createFileRoute("/test")({
       { title: "Le test Business Fit — 5 minutes, zéro formulaire" },
       {
         name: "description",
-        content: "Cartes, sliders, matrices : un test interactif pour cerner ton profil entrepreneurial en quelques minutes.",
+        content: "Cartes, échelles, matrices : test de compatibilité avec 120 modèles de business.",
       },
-      { property: "og:title", content: "Le test Business Fit" },
-      { property: "og:description", content: "Un test interactif pour cerner ton profil entrepreneurial en quelques minutes." },
+      { property: "og:title", content: "Le test Business Fit V2" },
+      { property: "og:description", content: "Test de compatibilité avec 120 modèles d'affaires." },
     ],
   }),
   component: TestPage,
 });
 
-const AUTO_ADVANCE = new Set(["single", "grid", "matrix", "sequence", "scale"]);
+const AUTO_ADVANCE = new Set(["single", "grid", "matrix", "sequence", "scale", "range_choice", "country_select"]);
 
 function TestPage() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ function TestPage() {
       setTimeout(() => {
         setTransition(null);
         setStep((s) => s + 1);
-      }, 1100);
+      }, 950);
       return;
     }
     setStep((s) => s + 1);
@@ -62,7 +63,7 @@ function TestPage() {
 
   const handleChange = (id: string, value: AnswerValue, type: string, multi: boolean) => {
     quizStore.set(id, value);
-    if (!multi && AUTO_ADVANCE.has(type) && screen?.questions.length === 1) {
+    if (!multi && AUTO_ADVANCE.has(type) && screen?.questions.length === 1 && type !== "country_select") {
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(goNext, 340);
     }
@@ -83,20 +84,42 @@ function TestPage() {
       </header>
 
       <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-6 py-10">
-        <p className="mb-6 text-xs uppercase tracking-[0.18em] text-primary">{currentModule?.label}</p>
-        <div key={step} className="space-y-12">
-          {screen.questions.map((q) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              value={answers[q.id]}
-              compact={screen.questions.length > 1}
-              onChange={(v) =>
-                handleChange(q.id, v, q.type, q.type === "multi" || (q.type === "grid" && (q.max ?? 1) > 1))
-              }
-            />
-          ))}
+        <div className="mb-4 flex items-center justify-between">
+          <p className="text-xs uppercase tracking-[0.18em] text-primary font-medium">{currentModule?.label}</p>
+          {screen.title && <span className="text-xs text-muted-foreground">{screen.title}</span>}
         </div>
+
+        {screen.title && !screen.isSkillsMatrix && screen.questions.length > 1 && (
+          <h2 className="mb-6 text-xl font-semibold sm:text-2xl">{screen.title}</h2>
+        )}
+
+        {screen.isSkillsMatrix ? (
+          <div key={step} className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold sm:text-2xl">{screen.title}</h2>
+              {screen.subtitle && <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">{screen.subtitle}</p>}
+            </div>
+            <SkillsMatrix
+              questions={screen.questions}
+              answers={answers}
+              onChange={(id, val) => quizStore.set(id, val)}
+            />
+          </div>
+        ) : (
+          <div key={step} className="space-y-10">
+            {screen.questions.map((q) => (
+              <QuestionCard
+                key={q.id}
+                question={q}
+                value={answers[q.id]}
+                compact={screen.questions.length > 1}
+                onChange={(v) =>
+                  handleChange(q.id, v, q.type, q.type === "multi" || (q.type === "grid" && (q.max ?? 1) > 1))
+                }
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <footer className="sticky bottom-0 border-t border-border bg-background/85 backdrop-blur">
@@ -125,33 +148,32 @@ function TestPage() {
 
 function Intro({ onStart }: { onStart: () => void }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-hero px-6">
+    <main className="flex min-h-screen items-center justify-center bg-hero px-6 py-12">
       <div className="animate-in-up w-full max-w-lg text-center">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-1.5 text-xs text-muted-foreground">
-          <Sparkles className="h-3.5 w-3.5 text-primary" /> 8 modules · environ 5 minutes
+          <Sparkles className="h-3.5 w-3.5 text-primary" /> 9 modules · environ 5 minutes
         </span>
-        <h1 className="mt-8 text-3xl font-semibold sm:text-4xl">Avant de commencer</h1>
-        <p className="mt-4 text-muted-foreground">
-          Aucune bonne ou mauvaise réponse pour les modules de profil. Réponds vite et spontanément : les premières
-          intuitions sont les plus fiables.
+        <h1 className="mt-8 text-3xl font-semibold sm:text-4xl">Business Fit V2</h1>
+        <p className="mt-4 text-sm text-muted-foreground sm:text-base">
+          Réponds spontanément aux questions. Tes choix permettront de calculer ta compatibilité précise avec 120 modèles d'affaires.
         </p>
-        <div className="mt-8 grid gap-2 text-left">
+        <div className="mt-8 grid gap-2 text-left max-h-80 overflow-y-auto pr-1">
           {modules.map((m, i) => (
             <div key={m.id} className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
                 {i + 1}
               </span>
               <span className="text-sm font-medium">{m.label}</span>
-              <span className="ml-auto text-xs text-muted-foreground">{m.intro}</span>
+              <span className="ml-auto text-xs text-muted-foreground truncate max-w-[160px] sm:max-w-xs">{m.intro}</span>
             </div>
           ))}
         </div>
         <button
           type="button"
           onClick={onStart}
-          className="mt-10 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-primary)] px-8 py-4 font-medium text-primary-foreground shadow-elegant transition-transform hover:scale-[1.02]"
+          className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-primary)] px-8 py-4 font-medium text-primary-foreground shadow-elegant transition-transform hover:scale-[1.02]"
         >
-          Commencer <ArrowRight className="h-4 w-4" />
+          Commencer le test V2 <ArrowRight className="h-4 w-4" />
         </button>
         <Link to="/" className="mt-4 inline-block text-xs text-muted-foreground hover:text-foreground">
           Revenir à l'accueil
@@ -167,9 +189,9 @@ function ModuleTransition({ moduleId }: { moduleId: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-hero px-6">
       <div className="animate-in-up text-center">
-        <p className="text-xs uppercase tracking-[0.24em] text-primary">Module {index + 1}</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-primary font-medium">Module {index + 1}</p>
         <h2 className="mt-4 text-3xl font-semibold sm:text-5xl">{m?.label}</h2>
-        <p className="mt-3 text-muted-foreground">{m?.intro}</p>
+        <p className="mt-3 text-muted-foreground text-sm sm:text-base">{m?.intro}</p>
       </div>
     </main>
   );

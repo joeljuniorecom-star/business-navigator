@@ -37,6 +37,7 @@ export interface Option {
   label: string;
   hint?: string;
   icon?: string;
+  value?: number;
   traits?: Traits;
 }
 
@@ -44,6 +45,10 @@ export type QuestionType =
   | "single"
   | "multi"
   | "scale"
+  | "interest_scale"
+  | "skill_scale"
+  | "range_choice"
+  | "country_select"
   | "slider"
   | "grid"
   | "matrix"

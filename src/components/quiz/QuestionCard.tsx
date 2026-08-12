@@ -1,6 +1,7 @@
 import { Glyph } from "./Glyph";
 import { OptionCard } from "./OptionCard";
 import { ScaleInput } from "./ScaleInput";
+import { CountrySelect } from "./CountrySelect";
 import { Slider } from "@/components/ui/slider";
 import type { AnswerValue, Question } from "@/data/types";
 
@@ -25,13 +26,22 @@ export function QuestionCard({ question: q, value, onChange, compact }: Question
 
   const sliderValue = typeof value === "number" ? value : (q.sliderDefault ?? q.sliderMin ?? 0);
 
+  const isScaleType = q.type === "scale" || q.type === "interest_scale" || q.type === "skill_scale";
+
   return (
     <div className="animate-in-up">
-      <h2 className={compact ? "text-lg font-semibold sm:text-xl" : "text-2xl font-semibold sm:text-3xl"}>{q.title}</h2>
-      {q.subtitle && <p className="mt-2 text-sm text-muted-foreground sm:text-base">{q.subtitle}</p>}
+      <h2 className={compact ? "text-base font-semibold sm:text-lg" : "text-xl font-semibold sm:text-2xl"}>{q.title}</h2>
+      {q.subtitle && <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">{q.subtitle}</p>}
 
-      <div className="mt-6">
-        {(q.type === "single" || q.type === "multi") && (
+      <div className="mt-5">
+        {q.type === "country_select" && (
+          <CountrySelect
+            value={typeof value === "string" ? value : undefined}
+            onChange={(code) => onChange(code)}
+          />
+        )}
+
+        {(q.type === "single" || q.type === "multi" || q.type === "range_choice") && (
           <div className="grid gap-3 sm:grid-cols-2">
             {q.options?.map((o) => (
               <OptionCard
@@ -62,10 +72,11 @@ export function QuestionCard({ question: q, value, onChange, compact }: Question
           </div>
         )}
 
-        {q.type === "scale" && (
+        {isScaleType && (
           <ScaleInput
-            value={typeof value === "number" ? value : undefined}
-            labels={q.scaleLabels ?? ["Pas du tout", "Totalement"]}
+            value={typeof value === "number" ? value : typeof value === "string" ? Number(value) : undefined}
+            labels={q.scaleLabels}
+            stepOptions={q.options}
             onChange={(v) => onChange(v)}
           />
         )}
@@ -94,18 +105,20 @@ export function QuestionCard({ question: q, value, onChange, compact }: Question
 
         {q.type === "matrix" && (
           <div className="flex flex-col items-center gap-8">
-            <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-surface p-3 sm:gap-3 sm:p-4">
-              {q.cells?.map((c, i) => (
-                <div
-                  key={i}
-                  className={`flex h-16 w-16 items-center justify-center rounded-xl sm:h-20 sm:w-20 ${
-                    c === "?" ? "border border-dashed border-primary/60 bg-primary/5" : "bg-surface-2"
-                  }`}
-                >
-                  <Glyph code={c} />
-                </div>
-              ))}
-            </div>
+            {q.cells && q.cells.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-surface p-3 sm:gap-3 sm:p-4">
+                {q.cells.map((c, i) => (
+                  <div
+                    key={i}
+                    className={`flex h-16 w-16 items-center justify-center rounded-xl sm:h-20 sm:w-20 ${
+                      c === "?" ? "border border-dashed border-primary/60 bg-primary/5" : "bg-surface-2"
+                    }`}
+                  >
+                    <Glyph code={c} />
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4">
               {q.options?.map((o) => (
                 <button
@@ -115,11 +128,11 @@ export function QuestionCard({ question: q, value, onChange, compact }: Question
                   aria-pressed={value === o.id}
                   className={`flex h-20 items-center justify-center rounded-2xl border transition-all duration-300 ${
                     value === o.id
-                      ? "border-primary bg-primary/10 shadow-elegant"
-                      : "border-border bg-surface hover:border-border-strong hover:bg-surface-2"
+                      ? "border-primary bg-primary/10 shadow-elegant font-medium"
+                      : "border-border bg-surface hover:border-border-strong hover:bg-surface-2 text-muted-foreground"
                   }`}
                 >
-                  <Glyph code={o.label} />
+                  {o.label.includes(":") ? <Glyph code={o.label} /> : <span className="text-sm">{o.label}</span>}
                 </button>
               ))}
             </div>
@@ -150,7 +163,7 @@ export function QuestionCard({ question: q, value, onChange, compact }: Question
                   className={`h-16 rounded-2xl border font-display text-lg font-semibold transition-all duration-300 ${
                     value === o.id
                       ? "border-primary bg-primary/10 text-primary shadow-elegant"
-                      : "border-border bg-surface hover:border-border-strong hover:bg-surface-2"
+                      : "border-border bg-surface hover:border-border-strong hover:bg-surface-2 text-muted-foreground"
                   }`}
                 >
                   {o.label}
@@ -163,7 +176,9 @@ export function QuestionCard({ question: q, value, onChange, compact }: Question
 
       {isMulti && (
         <p className="mt-4 text-xs text-muted-foreground">
-          {q.max ? `${selected.length}/${q.max} sélectionné${selected.length > 1 ? "s" : ""}` : `${selected.length} sélectionné${selected.length > 1 ? "s" : ""}`}
+          {q.max
+            ? `${selected.length}/${q.max} sélectionné${selected.length > 1 ? "s" : ""}`
+            : `${selected.length} sélectionné${selected.length > 1 ? "s" : ""}`}
         </p>
       )}
     </div>
