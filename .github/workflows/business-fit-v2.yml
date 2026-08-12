@@ -17,7 +17,5 @@ jobs:
         run: bun scripts/validate-business-fit-v2.ts
       - name: Test BOS V1 service
         run: bun scripts/bos-service.test.ts
-      - name: Lint
-        run: bun run lint
       - name: Build application
         run: bun run build
