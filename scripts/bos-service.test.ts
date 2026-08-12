@@ -239,6 +239,127 @@ if (catalogErrors === 0) {
   fail(`${catalogErrors} business ont échoué la génération BOS`);
 }
 
+// ── SECTION 10 : Tests ciblés BOS V1 (Univers, Pricing, Contraintes) ─────────
+console.log("\n=== SPECIFICITÉS BOS V1 (5 UNIVERS, PRICING, CONTRAINTES) ===");
+
+const agencyBiz = businessesV2.find((b) => b.universe === "agency_services")!;
+const softwareBiz = businessesV2.find((b) => b.universe === "software")!;
+const ecomBiz = businessesV2.find((b) => b.universe === "ecommerce")!;
+const infoBiz = businessesV2.find((b) => b.universe === "information")!;
+const physicalBiz = businessesV2.find((b) => b.universe === "physical")!;
+
+// A. 5 univers génèrent des plans réellement différents
+const resAgency = generateBOSForRequest({ profile: validProfile, businessId: agencyBiz.id });
+const resSoftware = generateBOSForRequest({ profile: validProfile, businessId: softwareBiz.id });
+const resEcom = generateBOSForRequest({ profile: validProfile, businessId: ecomBiz.id });
+const resInfo = generateBOSForRequest({ profile: validProfile, businessId: infoBiz.id });
+const resPhysical = generateBOSForRequest({ profile: validProfile, businessId: physicalBiz.id });
+
+const phaseNames = new Set([
+  resAgency.executionPlan[0].name,
+  resSoftware.executionPlan[0].name,
+  resEcom.executionPlan[0].name,
+  resInfo.executionPlan[0].name,
+  resPhysical.executionPlan[0].name,
+]);
+
+if (phaseNames.size === 5) {
+  ok("Les 5 univers génèrent des phases d'exécution distinctes et spécifiques");
+} else {
+  fail("Certains univers partagent encore des noms de phases génériques", Array.from(phaseNames));
+}
+
+// B. Software : SaaS, MRR, waitlist
+if (
+  resSoftware.monetization.model.includes("SaaS") &&
+  resSoftware.metrics.some((m) => m.name.toLowerCase().includes("mrr") || m.name.toLowerCase().includes("attente")) &&
+  resSoftware.executionPlan.some((p) => p.name.toLowerCase().includes("waitlist") || p.name.toLowerCase().includes("validation"))
+) {
+  ok("Software BOS : Métriques SaaS (MRR, waitlist), phases MVP et conversion cohérentes");
+} else {
+  fail("Software BOS non conforme aux attentes SaaS", resSoftware);
+}
+
+// C. Agency : Outbound, LinkedIn, Closing, Retainer
+if (
+  resAgency.acquisitionChannels.some((c) => c.channel.toLowerCase().includes("outreach") || c.channel.toLowerCase().includes("linkedin")) &&
+  resAgency.executionPlan.some((p) => p.name.toLowerCase().includes("niche") || p.name.toLowerCase().includes("closing"))
+) {
+  ok("Agency BOS : Prospection directe outbound, closing et phases d'agence valides");
+} else {
+  fail("Agency BOS non conforme aux attentes Agence", resAgency);
+}
+
+// D. Ecommerce : Marge brute, CVR, AOV
+if (
+  resEcom.metrics.some((m) => m.name.toLowerCase().includes("marge") || m.name.toLowerCase().includes("conversion") || m.name.toLowerCase().includes("panier")) &&
+  resEcom.executionPlan.some((p) => p.name.toLowerCase().includes("sourcing") || p.name.toLowerCase().includes("boutique"))
+) {
+  ok("Ecommerce BOS : Métriques e-commerce (marge, CVR, AOV) et sourcing présent");
+} else {
+  fail("Ecommerce BOS non conforme aux attentes E-commerce", resEcom);
+}
+
+// E. Information : Audience, Lead Magnet, Pré-vente
+if (
+  resInfo.executionPlan.some((p) => p.name.toLowerCase().includes("lead magnet") || p.name.toLowerCase().includes("pré-vente")) &&
+  resInfo.acquisitionChannels.some((c) => c.channel.toLowerCase().includes("lead magnet") || c.channel.toLowerCase().includes("autorité"))
+) {
+  ok("Information BOS : Plan spécifique avec Lead Magnet, tunnel email et pré-vente");
+} else {
+  fail("Information BOS non conforme aux attentes Infopreneuriat", resInfo);
+}
+
+// F. Physical : Ancrage local, Google Business Profile
+if (
+  resPhysical.executionPlan.some((p) => p.name.toLowerCase().includes("zone") || p.name.toLowerCase().includes("ancrage")) &&
+  resPhysical.acquisitionChannels.some((c) => c.channel.toLowerCase().includes("google") || c.channel.toLowerCase().includes("local"))
+) {
+  ok("Physical BOS : Plan spécifique local avec Google Business Profile et zone de chalandise");
+} else {
+  fail("Physical BOS non conforme aux attentes Service Physique", resPhysical);
+}
+
+// G. Pricing indépendant de budget_min_eur
+const lowBudgetSaaS = softwareBiz; // budget_min_eur = 50
+const saasPricingResult = generateBOSForRequest({ profile: validProfile, businessId: lowBudgetSaaS.id });
+if (
+  saasPricingResult.offer.priceRange &&
+  saasPricingResult.offer.priceRange.isIndicative === true &&
+  saasPricingResult.offer.priceRange.min < 100 &&
+  saasPricingResult.offer.priceRange.max < 500
+) {
+  ok(`Pricing fixe indépendant du capital : Micro-SaaS (budget min ${lowBudgetSaaS.economics.budget_min_eur}€) vends à ${saasPricingResult.offer.priceRange.min}–${saasPricingResult.offer.priceRange.max}€/mois`);
+} else {
+  fail("Le pricing dérive encore du budget initial", saasPricingResult.offer.priceRange);
+}
+
+// H. Respect contrainte budget utilisateur très faible (50€)
+const lowBudgetProfile = {
+  ...validProfile,
+  constraints: { ...validProfile.constraints, budget_eur: 50 },
+};
+const resLowBudget = generateBOSForRequest({ profile: lowBudgetProfile, businessId: ecomBiz.id });
+const totalPhaseBudget = resLowBudget.executionPlan.reduce((sum, p) => sum + p.estimatedBudget, 0);
+if (totalPhaseBudget <= 50) {
+  ok(`Budget utilisateur (50€) respecté : budget total des phases (${totalPhaseBudget}€) <= 50€`);
+} else {
+  fail(`Budget utilisateur dépassé : total phases = ${totalPhaseBudget}€ pour disponible = 50€`);
+}
+
+// I. Respect contrainte temps utilisateur faible (5h/semaine)
+const lowTimeProfile = {
+  ...validProfile,
+  constraints: { ...validProfile.constraints, hours_per_week: 5 },
+};
+const resLowTime = generateBOSForRequest({ profile: lowTimeProfile, businessId: agencyBiz.id });
+const timeConstraint = resLowTime.mainConstraints.find((c) => c.id === "c2");
+if (timeConstraint && timeConstraint.explanation.includes("étalé")) {
+  ok("Temps hebdomadaire faible (5h) : avertissement d'étalement du rythme présent dans les contraintes");
+} else {
+  fail("Absence d'avertissement d'étalement pour temps faible", timeConstraint);
+}
+
 // ── Résumé ────────────────────────────────────────────────────────────────────
 console.log(`\n${"=".repeat(55)}`);
 console.log(`RÉSULTAT: ${passed} passés, ${failed} échoués`);

@@ -31,6 +31,8 @@ export interface BOSOffer {
     min: number;
     max: number;
     currency: string;
+    isIndicative?: boolean;
+    period?: "month" | "one_time" | "unit" | "year";
   };
 }
 

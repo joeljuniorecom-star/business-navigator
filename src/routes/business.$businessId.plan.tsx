@@ -94,6 +94,7 @@ function BOSPlanPage() {
               <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
                 <Coins className="h-4 w-4 text-primary" />
                 Fourchette indicative : {result.offer.priceRange.min.toLocaleString("fr-FR")}–{result.offer.priceRange.max.toLocaleString("fr-FR")} {result.offer.priceRange.currency}
+                {result.offer.priceRange.period === "month" ? " / mois" : result.offer.priceRange.period === "unit" ? " / unité" : result.offer.priceRange.period === "year" ? " / an" : ""}
               </div>
             )}
           </Panel>
