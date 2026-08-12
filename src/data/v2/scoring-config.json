@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "principles": [
+    "Hard constraints are evaluated before compatibility scoring.",
+    "Exceeding a minimum requirement is never penalized.",
+    "Preferences use proximity; skills use minimum-requirement satisfaction.",
+    "Personality and reasoning can never exclude a business by themselves.",
+    "Business requirement values are configurable editorial heuristics, not probabilities of success."
+  ],
+  "weights": {
+    "constraints": 0.20,
+    "skills_and_learning": 0.20,
+    "unfair_advantages": 0.20,
+    "workstyle_preferences": 0.15,
+    "goals": 0.10,
+    "riasec": 0.075,
+    "big_five": 0.05,
+    "reasoning": 0.025
+  },
+  "hard_filters": {
+    "budget": {
+      "rule": "If user budget is below business minimum, apply a ratio penalty; never penalize budget above minimum.",
+      "max_penalty": 35
+    },
+    "time": {
+      "rule": "If user weekly hours are below the model minimum, apply a ratio penalty.",
+      "max_penalty": 25
+    },
+    "required_skills": {
+      "rule": "If a hard skill is missing and the user explicitly refuses to learn it, apply a severe penalty or exclude.",
+      "max_penalty": 40
+    }
+  },
+  "match_functions": {
+    "threshold_requirement": "min(100, user_value / required_value * 100), with 100 when required_value is 0",
+    "preference_distance": "100 - abs(user_value - target_value)",
+    "advantage_overlap": "weighted overlap across industries, languages, network and prior experience",
+    "personality": "low-weight target proximity only; no hard filters",
+    "reasoning": "relevance-weighted bonus only; no hard filters"
+  },
+  "output": {
+    "score_range": [0, 100],
+    "top_results": 3,
+    "include_subscores": true,
+    "include_positive_reasons": true,
+    "include_attention_points": true,
+    "include_confidence": true
+  }
+}
