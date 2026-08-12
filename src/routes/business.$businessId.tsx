@@ -1,14 +1,15 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock, Coins, Gauge, ShieldAlert, TrendingUp, Wrench, Layers, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowLeft, ArrowRight, Clock, Coins, Gauge, Loader2, ShieldAlert, TrendingUp, Wrench, Layers, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
 import { ScoreRing } from "@/components/site/ScoreRing";
 import { SubScoreBars } from "@/components/site/SubScoreBars";
 import { businessesV2 } from "@/data/v2/catalog";
 import { matchBusiness } from "@/data/v2/matching-engine";
 import { buildUserProfileV2 } from "@/data/v2/questionnaire-scoring";
 import type { BusinessUniverse, BusinessV2 } from "@/data/v2/business-schema";
+import type { BOSResult } from "@/data/v2/bos-schema";
 import { hydrateAnswers, useAnswers } from "@/lib/quiz-store";
+import { saveBOSResult } from "@/lib/bos-plan-store";
 
 export const Route = createFileRoute("/business/$businessId")({
   loader: ({ params }) => {
@@ -53,7 +54,10 @@ function formatLevel(val: number) {
 function BusinessPage() {
   const { business } = Route.useLoaderData() as { business: BusinessV2 };
   const answers = useAnswers();
+  const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   useEffect(() => {
     hydrateAnswers();
@@ -66,17 +70,40 @@ function BusinessPage() {
 
   const uInfo = UNIVERSE_LABELS[business.universe] ?? { label: business.universe, emoji: "💡" };
 
-  const handleBuildPlan = () => {
-    // Boundary payload prepared for BOS server-side integration
-    const payload = {
-      profileV2: profile,
-      selectedBusiness: business,
-      matchResult: match,
-    };
-    console.log("Boundary BOS ready with payload:", payload);
-    toast("Préparation du plan BOS", {
-      description: `Transmission du profil V2 et du modèle ${business.name} au générateur.`,
-    });
+  const buildPlan = async () => {
+    if (isGenerating) return;
+    if (!hasAnswers) {
+      setGenerationError("Passe d'abord le questionnaire pour personnaliser ton plan.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationError(null);
+    try {
+      // Le profil V2 est déjà canonique — buildUserProfileV2 est la source de vérité
+      // business.id est déjà un ID V2 canonique (chargé depuis businessesV2)
+      const response = await fetch("/api/bos/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile,
+          businessId: business.id,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as (BOSResult | { error?: string } | null);
+      if (!response.ok) {
+        throw new Error(payload && "error" in payload && payload.error ? payload.error : "Le plan n'a pas pu être généré.");
+      }
+      if (!payload || !("executionPlan" in payload)) {
+        throw new Error("Réponse BOS invalide.");
+      }
+      saveBOSResult(payload);
+      await navigate({ to: "/business/$businessId/plan", params: { businessId: business.id } });
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : "Une erreur inattendue est survenue.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -230,13 +257,18 @@ function BusinessPage() {
             <p className="text-sm font-medium">{business.name}</p>
             <p className="text-xs text-muted-foreground">Construis le plan d'action personnalisé pour ce modèle</p>
           </div>
-          <button
-            type="button"
-            onClick={handleBuildPlan}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-primary)] px-8 py-3.5 font-medium text-primary-foreground shadow-elegant transition-transform hover:scale-[1.02] sm:w-auto"
-          >
-            Construire mon plan <ArrowRight className="h-4 w-4" />
-          </button>
+          <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+            <button
+              type="button"
+              onClick={buildPlan}
+              disabled={isGenerating}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[image:var(--gradient-primary)] px-8 py-3.5 font-medium text-primary-foreground shadow-elegant transition-transform enabled:hover:scale-[1.02] disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+            >
+              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+              {isGenerating ? "Construction du plan…" : "Construire mon plan"}
+            </button>
+            {generationError && <p className="max-w-sm text-right text-xs text-destructive">{generationError}</p>}
+          </div>
         </div>
       </div>
     </main>

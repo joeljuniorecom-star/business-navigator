@@ -14,6 +14,8 @@ import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as ResultatsRouteImport } from './routes/resultats'
 import { Route as TestRouteImport } from './routes/test'
 import { Route as BusinessBusinessIdRouteImport } from './routes/business.$businessId'
+import { Route as ApiBosGenerateRouteImport } from './routes/api/bos/generate'
+import { Route as BusinessBusinessIdPlanRouteImport } from './routes/business.$businessId.plan'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,20 +42,34 @@ const BusinessBusinessIdRoute = BusinessBusinessIdRouteImport.update({
   path: '/business/$businessId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBosGenerateRoute = ApiBosGenerateRouteImport.update({
+  id: '/api/bos/generate',
+  path: '/api/bos/generate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessBusinessIdPlanRoute = BusinessBusinessIdPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => BusinessBusinessIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/resultats': typeof ResultatsRoute
   '/test': typeof TestRoute
-  '/business/$businessId': typeof BusinessBusinessIdRoute
+  '/business/$businessId': typeof BusinessBusinessIdRouteWithChildren
+  '/api/bos/generate': typeof ApiBosGenerateRoute
+  '/business/$businessId/plan': typeof BusinessBusinessIdPlanRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/resultats': typeof ResultatsRoute
   '/test': typeof TestRoute
-  '/business/$businessId': typeof BusinessBusinessIdRoute
+  '/business/$businessId': typeof BusinessBusinessIdRouteWithChildren
+  '/api/bos/generate': typeof ApiBosGenerateRoute
+  '/business/$businessId/plan': typeof BusinessBusinessIdPlanRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,13 +77,29 @@ export interface FileRoutesById {
   '/analyse': typeof AnalyseRoute
   '/resultats': typeof ResultatsRoute
   '/test': typeof TestRoute
-  '/business/$businessId': typeof BusinessBusinessIdRoute
+  '/business/$businessId': typeof BusinessBusinessIdRouteWithChildren
+  '/api/bos/generate': typeof ApiBosGenerateRoute
+  '/business/$businessId/plan': typeof BusinessBusinessIdPlanRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analyse' | '/resultats' | '/test' | '/business/$businessId'
+  fullPaths:
+    | '/'
+    | '/analyse'
+    | '/resultats'
+    | '/test'
+    | '/business/$businessId'
+    | '/api/bos/generate'
+    | '/business/$businessId/plan'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analyse' | '/resultats' | '/test' | '/business/$businessId'
+  to:
+    | '/'
+    | '/analyse'
+    | '/resultats'
+    | '/test'
+    | '/business/$businessId'
+    | '/api/bos/generate'
+    | '/business/$businessId/plan'
   id:
     | '__root__'
     | '/'
@@ -75,6 +107,8 @@ export interface FileRouteTypes {
     | '/resultats'
     | '/test'
     | '/business/$businessId'
+    | '/api/bos/generate'
+    | '/business/$businessId/plan'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -82,7 +116,8 @@ export interface RootRouteChildren {
   AnalyseRoute: typeof AnalyseRoute
   ResultatsRoute: typeof ResultatsRoute
   TestRoute: typeof TestRoute
-  BusinessBusinessIdRoute: typeof BusinessBusinessIdRoute
+  BusinessBusinessIdRoute: typeof BusinessBusinessIdRouteWithChildren
+  ApiBosGenerateRoute: typeof ApiBosGenerateRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -122,15 +157,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessBusinessIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bos/generate': {
+      id: '/api/bos/generate'
+      path: '/api/bos/generate'
+      fullPath: '/api/bos/generate'
+      preLoaderRoute: typeof ApiBosGenerateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business/$businessId/plan': {
+      id: '/business/$businessId/plan'
+      path: '/plan'
+      fullPath: '/business/$businessId/plan'
+      preLoaderRoute: typeof BusinessBusinessIdPlanRouteImport
+      parentRoute: typeof BusinessBusinessIdRoute
+    }
   }
 }
+
+interface BusinessBusinessIdRouteChildren {
+  BusinessBusinessIdPlanRoute: typeof BusinessBusinessIdPlanRoute
+}
+
+const BusinessBusinessIdRouteChildren: BusinessBusinessIdRouteChildren = {
+  BusinessBusinessIdPlanRoute: BusinessBusinessIdPlanRoute,
+}
+
+const BusinessBusinessIdRouteWithChildren =
+  BusinessBusinessIdRoute._addFileChildren(BusinessBusinessIdRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyseRoute: AnalyseRoute,
   ResultatsRoute: ResultatsRoute,
   TestRoute: TestRoute,
-  BusinessBusinessIdRoute: BusinessBusinessIdRoute,
+  BusinessBusinessIdRoute: BusinessBusinessIdRouteWithChildren,
+  ApiBosGenerateRoute: ApiBosGenerateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
