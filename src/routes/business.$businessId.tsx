@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Clock, Coins, Gauge, Loader2, ShieldAlert, TrendingUp, Wrench, Layers, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
 import { ScoreRing } from "@/components/site/ScoreRing";
@@ -58,6 +58,9 @@ function BusinessPage() {
   const [ready, setReady] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const isPlanRoute = useRouterState({
+    select: (state) => state.location.pathname.endsWith("/plan"),
+  });
 
   useEffect(() => {
     hydrateAnswers();
@@ -69,6 +72,10 @@ function BusinessPage() {
   const hasAnswers = ready && Object.keys(answers).length > 0;
 
   const uInfo = UNIVERSE_LABELS[business.universe] ?? { label: business.universe, emoji: "💡" };
+
+  if (isPlanRoute) {
+    return <Outlet />;
+  }
 
   const buildPlan = async () => {
     if (isGenerating) return;
