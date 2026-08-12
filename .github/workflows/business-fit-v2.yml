@@ -1,12 +1,7 @@
-name: Business Fit V2
+name: Business Fit V2 + BOS V1
 
 on:
   pull_request:
-    paths:
-      - "src/data/v2/**"
-      - "scripts/validate-business-fit-v2.ts"
-      - "tsconfig.json"
-      - ".github/workflows/business-fit-v2.yml"
   workflow_dispatch:
 
 jobs:
@@ -18,7 +13,11 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - name: Validate V2 datasets
+      - name: Validate Business Fit V2 datasets
         run: bun scripts/validate-business-fit-v2.ts
+      - name: Test BOS V1 service
+        run: bun scripts/bos-service.test.ts
+      - name: Lint
+        run: bun run lint
       - name: Build application
         run: bun run build
