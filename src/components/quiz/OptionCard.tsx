@@ -15,12 +15,12 @@ const ICONS: Record<string, LucideIcon> = {
 
 interface OptionCardProps {
   label: string;
-  hint?: string;
-  icon?: string;
+  hint?: string | undefined;
+  icon?: string | undefined;
   selected: boolean;
   onClick: () => void;
-  layout?: "row" | "tile";
-  children?: React.ReactNode;
+  layout?: "row" | "tile" | undefined;
+  children?: React.ReactNode | undefined;
 }
 
 export function OptionCard({ label, hint, icon, selected, onClick, layout = "row", children }: OptionCardProps) {

@@ -49,7 +49,7 @@ function TestPage() {
       return;
     }
     const next = screens[step + 1];
-    if (screen && next.moduleId !== screen.moduleId) {
+    if (screen && next && next.moduleId !== screen.moduleId) {
       setTransition(next.moduleId);
       setTimeout(() => {
         setTransition(null);

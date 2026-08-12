@@ -1,5 +1,5 @@
 interface ScaleInputProps {
-  value?: number;
+  value?: number | undefined;
   labels: [string, string];
   onChange: (v: number) => void;
 }

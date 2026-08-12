@@ -6,9 +6,9 @@ import type { AnswerValue, Question } from "@/data/types";
 
 interface QuestionCardProps {
   question: Question;
-  value?: AnswerValue;
+  value?: AnswerValue | undefined;
   onChange: (value: AnswerValue) => void;
-  compact?: boolean;
+  compact?: boolean | undefined;
 }
 
 export function QuestionCard({ question: q, value, onChange, compact }: QuestionCardProps) {
@@ -80,10 +80,10 @@ export function QuestionCard({ question: q, value, onChange, compact }: Question
             </div>
             <Slider
               value={[sliderValue]}
-              min={q.sliderMin}
-              max={q.sliderMax}
-              step={q.sliderStep}
-              onValueChange={([v]) => onChange(v)}
+              min={q.sliderMin ?? 0}
+              max={q.sliderMax ?? 100}
+              step={q.sliderStep ?? 1}
+              onValueChange={([v]) => onChange(v ?? 0)}
             />
             <div className="mt-3 flex justify-between text-xs text-muted-foreground">
               <span>{q.sliderMin?.toLocaleString("fr-FR")} {q.sliderUnit}</span>

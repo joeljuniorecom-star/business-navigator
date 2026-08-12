@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ScoreRing } from "@/components/site/ScoreRing";
 import { SubScoreBars } from "@/components/site/SubScoreBars";
 import { getBusiness, businesses } from "@/data/businesses";
+import type { Business } from "@/data/types";
 import { hydrateAnswers, useAnswers } from "@/lib/quiz-store";
 import { scoreAll } from "@/lib/scoring";
 
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/business/$businessId")({
 });
 
 function BusinessPage() {
-  const { business } = Route.useLoaderData();
+  const { business } = Route.useLoaderData() as { business: Business };
   const answers = useAnswers();
   const [ready, setReady] = useState(false);
 
