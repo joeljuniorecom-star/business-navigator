@@ -16,6 +16,9 @@ dist-ssr
 .nitro
 *.local
 
+# Temporary review / transfer artifacts
+bos-v1-*.patch
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
